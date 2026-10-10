@@ -12,6 +12,16 @@ from temporal_workflow import (
     run_tabpfn_quality_prediction,
     persist_report,
 )
+import sentry_sdk
+import os
+
+sentry_dsn = os.environ.get("SENTRY_DSN")
+if sentry_dsn:
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
 
 async def main():
     logging.basicConfig(level=logging.INFO)

@@ -7,6 +7,16 @@ import json
 import logging
 from temporalio.client import Client
 from temporal_workflow import EvidenceData
+import sentry_sdk
+import os
+
+sentry_dsn = os.environ.get("SENTRY_DSN")
+if sentry_dsn:
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,6 +63,12 @@ class FieldReport(BaseModel):
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/sentry-debug")
+def trigger_error():
+    logger.error("Simulated performance issue / timeout for Sentry Tracing.")
+    division_by_zero = 1 / 0
+    return {"status": "unreachable"}
 
 async def generate_from_ollama(prompt: str) -> str:
     async with httpx.AsyncClient(timeout=60.0) as client:
