@@ -196,24 +196,39 @@ function Report() {
   const { id } = useParams<{ id: string }>();
   const [expedition, setExpedition] = useState<Expedition | null>(null);
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   useEffect(() => {
     if (id) {
-      getExpedition(id).then(exp => {
+      getExpedition(id).then(async exp => {
         if (exp) {
-          // If not analyzed, we mock it for Phase 3
           if (!exp.report) {
-            const mockReport: FieldReport = {
-              summary: "A brief walk yielding partial insights into the local habitat.",
-              observations: [
-                { claim: "Found broadleaf patterns near the pathway.", confidence: "observed", supportingEvidenceIds: [] },
-                { claim: "Likely a moderately humid micro-climate.", confidence: "inferred", supportingEvidenceIds: [] },
-              ],
-              missingEvidence: ["Audio capturing ambient bird sounds.", "Temperature readings."],
-              suggestedNextStep: "Return at dusk to capture nocturnal insect patterns."
-            };
-            const updated = { ...exp, status: 'complete' as const, report: mockReport };
-            saveExpedition(updated);
-            setExpedition(updated);
+            try {
+              const res = await fetch('http://localhost:8000/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ missionType: exp.missionType, evidence: exp.evidence })
+              });
+              if (!res.ok) throw new Error('Backend unavailable');
+              const data = await res.json();
+              const updated = { ...exp, status: 'complete' as const, report: data };
+              await saveExpedition(updated);
+              setExpedition(updated);
+            } catch (err) {
+              setErrorMsg("AI analysis unavailable. Showing a locally generated evidence summary.");
+              const mockReport: FieldReport = {
+                summary: "A brief walk yielding partial insights into the local habitat (Mocked).",
+                observations: [
+                  { claim: "Found broadleaf patterns near the pathway.", confidence: "observed", supportingEvidenceIds: [] },
+                  { claim: "Likely a moderately humid micro-climate.", confidence: "inferred", supportingEvidenceIds: [] },
+                ],
+                missingEvidence: ["Audio capturing ambient bird sounds.", "Temperature readings."],
+                suggestedNextStep: "Return at dusk to capture nocturnal insect patterns."
+              };
+              const updated = { ...exp, status: 'complete' as const, report: mockReport };
+              await saveExpedition(updated);
+              setExpedition(updated);
+            }
           } else {
             setExpedition(exp);
           }
@@ -230,6 +245,13 @@ function Report() {
     <div className="p-4 max-w-2xl mx-auto mt-4">
       <h2 className="text-3xl font-bold mb-2">Field Report</h2>
       <p className="text-neutral-500 mb-6">{new Date(expedition.completedAt || expedition.startedAt).toLocaleString()}</p>
+
+      {errorMsg && (
+        <div className="bg-amber-100 border border-amber-300 text-amber-800 p-4 rounded-xl mb-6 flex items-start gap-2">
+          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <p>{errorMsg}</p>
+        </div>
+      )}
 
       <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-xl mb-6">
         <p className="text-emerald-900 leading-relaxed">{report.summary}</p>
