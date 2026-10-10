@@ -214,7 +214,7 @@ function Report() {
               const updated = { ...exp, status: 'complete' as const, report: data };
               await saveExpedition(updated);
               setExpedition(updated);
-            } catch (err) {
+            } catch {
               setErrorMsg("AI analysis unavailable. Showing a locally generated evidence summary.");
               const mockReport: FieldReport = {
                 summary: "A brief walk yielding partial insights into the local habitat (Mocked).",

@@ -152,7 +152,21 @@ Invalid JSON:
             logger.error(f"Repair attempt failed: {e}")
             raise HTTPException(status_code=500, detail="AI returned malformed data. Please try again.")
 
+class QualityPredictionRequest(BaseModel):
+    num_photos: int
+    num_notes: int
+    total_note_length: int
+    duration_seconds: int
+
 @app.post("/predict-quality")
-def predict_quality():
-    # Placeholder for Phase 5 (TabPFN)
-    return {"status": "TabPFN quality prediction coming soon"}
+def predict_quality(features: QualityPredictionRequest):
+    # This uses the baseline heuristic. 
+    # For the TabPFN experiment (which can be memory-heavy), see tabpfn_experiment.py
+    evidence_count = features.num_photos + features.num_notes
+    is_high_quality = (evidence_count >= 3) and (features.total_note_length >= 40)
+    
+    return {
+        "is_high_quality": is_high_quality,
+        "score": evidence_count + (features.total_note_length / 10),
+        "model": "baseline_heuristic"
+    }
