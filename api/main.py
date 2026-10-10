@@ -5,6 +5,8 @@ from typing import List, Optional, Literal
 import httpx
 import json
 import logging
+from temporalio.client import Client
+from temporal_workflow import EvidenceData
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -151,6 +153,30 @@ Invalid JSON:
         except Exception as e:
             logger.error(f"Repair attempt failed: {e}")
             raise HTTPException(status_code=500, detail="AI returned malformed data. Please try again.")
+
+@app.post("/analyze-durable")
+async def analyze_expedition_durable(request: AnalyzeRequest):
+    logger.info("Triggering durable analysis via Temporal...")
+    try:
+        client = await Client.connect("localhost:7233")
+        
+        # Convert Pydantic request to workflow dataclass
+        evidence_data = EvidenceData(
+            mission_type=request.missionType,
+            evidence_items=[ev.model_dump() for ev in request.evidence]
+        )
+        
+        # Execute workflow
+        result = await client.execute_workflow(
+            "ExpeditionAnalysisWorkflow",
+            evidence_data,
+            id=f"expedition-analysis-{request.missionType}-{len(request.evidence)}",
+            task_queue="fieldproof-analysis-queue",
+        )
+        return {"status": "Workflow completed", "result": result}
+    except Exception as e:
+        logger.error(f"Temporal execution failed: {e}")
+        raise HTTPException(status_code=500, detail="Temporal workflow failed or server is not running.")
 
 class QualityPredictionRequest(BaseModel):
     num_photos: int
