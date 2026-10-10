@@ -48,7 +48,18 @@ function Missions() {
 
   return (
     <div className="p-4 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Select a Mission</h2>
+      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-emerald-50 p-8 rounded-3xl shadow-xl mb-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
+          <Leaf className="w-64 h-64" />
+        </div>
+        <h1 className="text-4xl font-extrabold mb-2 tracking-tight flex items-center gap-3">
+          <Leaf className="w-8 h-8 text-emerald-400" />
+          FieldProof
+        </h1>
+        <p className="text-emerald-200/90 text-lg max-w-md">Uncertainty-aware field logging for the rigorous outdoor researcher.</p>
+      </div>
+
+      <h2 className="text-2xl font-bold mb-4 text-neutral-800">Select Mission</h2>
       <div className="grid gap-4 md:grid-cols-2">
         {[
           { id: 'habitat-comparison', title: 'Habitat Comparison', desc: 'Compare sunny and shaded areas.', icon: Map },
@@ -135,11 +146,13 @@ function ActiveExpedition() {
     <div className="p-4 max-w-2xl mx-auto pb-24">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold capitalize">{expedition.missionType.replace('-', ' ')}</h2>
-          <p className="text-neutral-500 text-sm">Status: {expedition.status}</p>
+          <h2 className="text-3xl font-extrabold capitalize text-neutral-800 tracking-tight">{expedition.missionType.replace('-', ' ')}</h2>
+          <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm border border-amber-200 uppercase mt-2 inline-block">
+            Status: {expedition.status}
+          </span>
         </div>
-        <button onClick={completeExpedition} className="bg-emerald-600 text-white px-4 py-2 rounded font-medium flex items-center gap-1 hover:bg-emerald-700">
-          <Check className="w-4 h-4"/> Generate Report
+        <button onClick={completeExpedition} className="bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg hover:shadow-xl font-bold flex items-center gap-2 hover:bg-emerald-700 transition transform hover:-translate-y-0.5">
+          <Check className="w-5 h-5"/> Generate Report
         </button>
       </div>
 
