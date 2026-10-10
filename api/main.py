@@ -11,6 +11,29 @@ import sentry_sdk
 import os
 from dotenv import load_dotenv
 
+# Optional TabPFN import
+try:
+    from tabpfn import TabPFNClassifier
+    import pandas as pd
+    import numpy as np
+    
+    # Train dummy model on startup for demo purposes
+    np.random.seed(42)
+    n_samples = 150
+    X = pd.DataFrame({
+        'num_photos': np.random.randint(0, 5, n_samples),
+        'num_notes': np.random.randint(0, 5, n_samples),
+        'total_note_length': np.random.randint(0, 200, n_samples),
+        'duration_seconds': np.random.randint(60, 3600, n_samples)
+    })
+    y = ((X['num_photos'] >= 1) & (X['total_note_length'] >= 20) & (X['duration_seconds'] > 300)).astype(int)
+    
+    tabpfn_model = TabPFNClassifier(device='cpu', N_ensemble_configurations=8)
+    tabpfn_model.fit(X, y)
+    TABPFN_AVAILABLE = True
+except ImportError:
+    TABPFN_AVAILABLE = False
+
 load_dotenv()
 
 sentry_dsn = os.environ.get("SENTRY_DSN")
@@ -29,7 +52,7 @@ app = FastAPI(title="WildProof API")
 # Allow frontend to access the API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict to frontend URL
+    allow_origins=["http://localhost:5173", "https://wildproof.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -204,13 +227,27 @@ class QualityPredictionRequest(BaseModel):
 
 @app.post("/predict-quality")
 def predict_quality(features: QualityPredictionRequest):
-    # This uses the baseline heuristic. 
-    # For the TabPFN experiment (which can be memory-heavy), see tabpfn_experiment.py
+    if TABPFN_AVAILABLE:
+        try:
+            df = pd.DataFrame({
+                'num_photos': [features.num_photos],
+                'num_notes': [features.num_notes],
+                'total_note_length': [features.total_note_length],
+                'duration_seconds': [features.duration_seconds]
+            })
+            probs = tabpfn_model.predict_proba(df)[0]
+            score = int(probs[1] * 100) # Convert probability to 0-100 score
+            return {"score": score, "model": "tabpfn"}
+        except Exception as e:
+            logger.error(f"TabPFN prediction failed: {e}")
+            
+    # Baseline heuristic fallback
     evidence_count = features.num_photos + features.num_notes
-    is_high_quality = (evidence_count >= 3) and (features.total_note_length >= 40)
-    
-    return {
-        "is_high_quality": is_high_quality,
-        "score": evidence_count + (features.total_note_length / 10),
-        "model": "baseline_heuristic"
-    }
+    if evidence_count >= 3 and features.total_note_length >= 40:
+        score = 85
+    elif evidence_count > 0:
+        score = 50
+    else:
+        score = 10
+        
+    return {"score": score, "model": "baseline_heuristic"}

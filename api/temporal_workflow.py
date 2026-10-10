@@ -29,31 +29,41 @@ async def normalize_evidence(evidence: EvidenceData) -> EvidenceData:
     # Add dummy location normalization logic or size reduction
     return evidence
 
-# A mock counter to simulate a transient failure for demonstration purposes
-gemma_failures = 0
+import json
+import httpx
 
 @activity.defn
 async def run_gemma_analysis(evidence: EvidenceData) -> ReportData:
-    global gemma_failures
-    activity.logger.info(f"Running Gemma Analysis for {evidence.mission_type}...")
+    activity.logger.info(f"Running REAL Gemma Analysis for {evidence.mission_type}...")
     
-    # DEMONSTRATION OF TEMPORAL'S DURABLE RETRY
-    # We force the activity to fail the first time to show how Temporal resumes it
-    # without restarting the entire expedition process.
-    if gemma_failures < 1:
-        gemma_failures += 1
-        activity.logger.error("Simulated GPU OOM or API Timeout error in Gemma.")
-        raise RuntimeError("Gemma model failed to respond (Simulated Timeout)")
-    
-    # If we get here, it succeeded (on the retry)
-    return ReportData(
-        summary="A durable field report generated after a simulated failure recovery.",
-        observations=[
-            {"claim": "Evidence recovered seamlessly.", "confidence": "observed", "supportingEvidenceIds": []}
-        ],
-        missing_evidence=[],
-        suggested_next_step="Review the Sentry tracing logs."
-    )
+    prompt = f"Mission: {evidence.mission_type}. Analyze this field evidence:\n"
+    for e in evidence.evidence_items:
+        if e.get("kind") == "note":
+            prompt += f"- Note: {e.get('text')}\n"
+        elif e.get("kind") == "photo":
+            prompt += "- Photo: [Image metadata omitted for text-only model]\n"
+
+    prompt += "\nOutput JSON with summary, observations (with claim, confidence), missing_evidence, and suggested_next_step."
+
+    # This will fail (and therefore trigger Temporal's durable retries) if Ollama is not running!
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(
+            "http://localhost:11434/api/generate",
+            json={"model": "gemma:2b", "prompt": prompt, "stream": False, "format": "json"}
+        )
+        response.raise_for_status()
+        result = response.json()
+        
+        try:
+            data = json.loads(result["response"])
+            return ReportData(
+                summary=data.get("summary", "Fallback summary"),
+                observations=data.get("observations", []),
+                missing_evidence=data.get("missing_evidence", []),
+                suggested_next_step=data.get("suggested_next_step", "")
+            )
+        except Exception:
+            raise RuntimeError("Failed to parse Gemma output into valid JSON")
 
 @activity.defn
 async def validate_report(report: ReportData) -> ReportData:

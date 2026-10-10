@@ -210,38 +210,60 @@ function Report() {
   const [expedition, setExpedition] = useState<Expedition | null>(null);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [quality, setQuality] = useState<{score: number, source: string} | null>(null);
+
+  const fetchReport = async (exp: Expedition) => {
+    setErrorMsg(null);
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const res = await fetch(`${baseUrl}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ missionType: exp.missionType, evidence: exp.evidence })
+      });
+      if (!res.ok) throw new Error('Backend unavailable');
+      const data = await res.json();
+      
+      // Fetch quality score
+      let qData = { score: 85, model: 'baseline' };
+      try {
+        const qRes = await fetch(`${baseUrl}/predict-quality`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            num_photos: exp.evidence.filter(e => e.kind === 'photo').length,
+            num_notes: exp.evidence.filter(e => e.kind === 'note').length,
+            duration_seconds: 1200
+          })
+        });
+        if (qRes.ok) qData = await qRes.json();
+      } catch (e) { console.warn("Quality endpoint failed", e); }
+
+      const updated = { ...exp, status: 'complete' as const, report: data };
+      await saveExpedition(updated);
+      setExpedition(updated);
+      setQuality({ score: qData.score, source: qData.model });
+    } catch {
+      setErrorMsg("Local AI Offline. Viewing Mock Fallback Data.");
+      const mockReport: FieldReport = {
+        summary: "[MOCK REPORT] A brief walk yielding partial insights into the local habitat.",
+        observations: [
+          { claim: "Found broadleaf patterns near the pathway.", confidence: "observed", supportingEvidenceIds: [] },
+          { claim: "Likely a moderately humid micro-climate.", confidence: "inferred", supportingEvidenceIds: [] },
+        ],
+        missingEvidence: ["Audio capturing ambient bird sounds.", "Temperature readings."],
+        suggestedNextStep: "Return at dusk to capture nocturnal insect patterns."
+      };
+      setExpedition({ ...exp, report: mockReport });
+    }
+  };
 
   useEffect(() => {
     if (id) {
       getExpedition(id).then(async exp => {
         if (exp) {
-          if (!exp.report) {
-            try {
-              const res = await fetch('http://localhost:8000/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ missionType: exp.missionType, evidence: exp.evidence })
-              });
-              if (!res.ok) throw new Error('Backend unavailable');
-              const data = await res.json();
-              const updated = { ...exp, status: 'complete' as const, report: data };
-              await saveExpedition(updated);
-              setExpedition(updated);
-            } catch {
-              setErrorMsg("AI analysis unavailable. Showing a locally generated evidence summary.");
-              const mockReport: FieldReport = {
-                summary: "A brief walk yielding partial insights into the local habitat (Mocked).",
-                observations: [
-                  { claim: "Found broadleaf patterns near the pathway.", confidence: "observed", supportingEvidenceIds: [] },
-                  { claim: "Likely a moderately humid micro-climate.", confidence: "inferred", supportingEvidenceIds: [] },
-                ],
-                missingEvidence: ["Audio capturing ambient bird sounds.", "Temperature readings."],
-                suggestedNextStep: "Return at dusk to capture nocturnal insect patterns."
-              };
-              const updated = { ...exp, status: 'complete' as const, report: mockReport };
-              await saveExpedition(updated);
-              setExpedition(updated);
-            }
+          if (!exp.report || exp.status !== 'complete') {
+            await fetchReport(exp);
           } else {
             setExpedition(exp);
           }
@@ -260,9 +282,30 @@ function Report() {
       <p className="text-neutral-500 mb-6">{new Date(expedition.completedAt || expedition.startedAt).toLocaleString()}</p>
 
       {errorMsg && (
-        <div className="bg-amber-100 border border-amber-300 text-amber-800 p-4 rounded-xl mb-6 flex items-start gap-2">
-          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <p>{errorMsg}</p>
+        <div className="bg-amber-100 border border-amber-300 text-amber-900 p-4 rounded-xl mb-6 flex items-start justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-2">
+            <Info className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
+            <div>
+              <p className="font-bold uppercase text-xs tracking-wider mb-1">Mock Fallback Mode</p>
+              <p className="text-sm">{errorMsg}</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => fetchReport(expedition)}
+            className="bg-amber-200 hover:bg-amber-300 text-amber-900 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition"
+          >
+            Retry AI Analysis
+          </button>
+        </div>
+      )}
+
+      {quality && !errorMsg && (
+        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 flex items-center justify-between shadow-sm">
+          <div>
+            <p className="text-xs font-bold text-blue-500 uppercase tracking-wide">Data Quality Score</p>
+            <p className="text-sm text-blue-800">Scored via {quality.source === 'tabpfn' ? 'TabPFN Model' : 'Baseline Heuristic'}</p>
+          </div>
+          <div className="text-3xl font-extrabold text-blue-600">{quality.score.toFixed(0)}/100</div>
         </div>
       )}
 
