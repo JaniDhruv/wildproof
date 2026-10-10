@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
 import { Leaf, Map, ClipboardList, Info, Camera, Trash, Plus, Check } from 'lucide-react';
 import { getExpedition, saveExpedition } from './lib/db';
@@ -213,7 +213,7 @@ function Report() {
   const [quality, setQuality] = useState<{score: number, source: string} | null>(null);
   const [useTemporal, setUseTemporal] = useState<boolean>(true);
 
-  const fetchReport = async (exp: Expedition) => {
+  const fetchReport = useCallback(async (exp: Expedition) => {
     setErrorMsg(null);
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -231,6 +231,13 @@ function Report() {
         data = data.result; // Unwrap Temporal result
       }
       
+      const normalizedReport: FieldReport = {
+        summary: data.summary,
+        observations: data.observations || [],
+        missingEvidence: data.missingEvidence ?? data.missing_evidence ?? [],
+        suggestedNextStep: data.suggestedNextStep ?? data.suggested_next_step ?? ''
+      };
+
       // Fetch quality score
       let qData = null;
       try {
@@ -247,7 +254,7 @@ function Report() {
         if (qRes.ok) qData = await qRes.json();
       } catch (e) { console.warn("Quality endpoint failed", e); }
 
-      const updated = { ...exp, status: 'complete' as const, report: data };
+      const updated = { ...exp, status: 'complete' as const, report: normalizedReport };
       await saveExpedition(updated);
       setExpedition(updated);
       if (qData) {
@@ -269,7 +276,7 @@ function Report() {
       await saveExpedition(updated);
       setExpedition(updated);
     }
-  };
+  }, [useTemporal]);
 
   useEffect(() => {
     if (id) {
@@ -284,7 +291,7 @@ function Report() {
         }
       });
     }
-  }, [id]);
+  }, [id, fetchReport]);
 
   if (!expedition || !expedition.report) return <div className="p-4 text-center mt-10">Generating report...</div>;
 

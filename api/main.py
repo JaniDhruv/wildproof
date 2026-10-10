@@ -65,7 +65,11 @@ class FieldReport(BaseModel):
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "quality_model": "baseline_heuristic",
+        "tabpfn": "unavailable"
+    }
 
 @app.get("/sentry-debug")
 def trigger_error():

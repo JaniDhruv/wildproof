@@ -18,6 +18,11 @@ class ReportData:
     missing_evidence: List[str]
     suggested_next_step: str
 
+@dataclass
+class QualityInput:
+    evidence: EvidenceData
+    report: ReportData
+
 # ---------------------------------------------------------
 # ACTIVITIES
 # ---------------------------------------------------------
@@ -72,18 +77,32 @@ async def validate_report(report: ReportData) -> ReportData:
     return report
 
 @activity.defn
-async def run_tabpfn_quality_prediction(report: ReportData) -> int:
+async def run_tabpfn_quality_prediction(inputs: QualityInput) -> Dict[str, Any]:
     activity.logger.info("Running TabPFN tabular prediction on expedition quality...")
+    
+    num_photos = sum(1 for e in inputs.evidence.evidence_items if e.get("kind") == "photo")
+    num_notes = sum(1 for e in inputs.evidence.evidence_items if e.get("kind") == "note")
+    total_note_length = sum(len(e.get("text", "")) for e in inputs.evidence.evidence_items if e.get("kind") == "note")
+    
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             # We call our own API to use the exact same TabPFN/fallback logic
             response = await client.post(
                 "http://localhost:8000/predict-quality",
-                json={"num_photos": 1, "num_notes": len(report.observations), "total_note_length": len(report.summary), "duration_seconds": 600}
+                json={
+                    "num_photos": num_photos, 
+                    "num_notes": num_notes, 
+                    "total_note_length": total_note_length, 
+                    "duration_seconds": 600
+                }
             )
-            return response.json().get("score", 85)
-        except Exception:
-            return 85
+            response.raise_for_status()
+            data = response.json()
+            return {"score": data.get("score"), "model": data.get("model")}
+        except Exception as e:
+            activity.logger.error(f"Quality endpoint failed: {e}")
+            # Raise an error to allow Temporal to retry, or fallback honestly.
+            return {"score": None, "model": "unavailable", "reason": "quality endpoint unavailable"}
 
 @activity.defn
 async def persist_report(report: ReportData) -> ReportData:
@@ -120,9 +139,9 @@ class ExpeditionAnalysisWorkflow:
         )
 
         # Step 4: Quality Prediction
-        quality_score = await workflow.execute_activity(
+        quality_score_data = await workflow.execute_activity(
             run_tabpfn_quality_prediction,
-            validated_report,
+            QualityInput(evidence=normalized, report=validated_report),
             start_to_close_timeout=timedelta(seconds=30),
         )
 
@@ -139,5 +158,5 @@ class ExpeditionAnalysisWorkflow:
             "observations": final_report.observations,
             "missing_evidence": final_report.missing_evidence,
             "suggested_next_step": final_report.suggested_next_step,
-            "quality_score": quality_score
+            "quality_score": quality_score_data.get("score") if quality_score_data else None
         }
