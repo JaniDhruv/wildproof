@@ -15,6 +15,20 @@ export interface EvidenceItem {
   longitude?: number;
 }
 
+export interface Observation {
+  claim: string;
+  confidence: Confidence;
+  supportingEvidenceIds: string[];
+}
+
+export interface FieldReport {
+  summary: string;
+  observations: Observation[];
+  missingEvidence: string[];
+  suggestedNextStep: string;
+  qualityScore?: number;
+}
+
 export interface Expedition {
   id: string;
   missionType: MissionType;
@@ -22,7 +36,7 @@ export interface Expedition {
   completedAt?: string;
   evidence: EvidenceItem[];
   status: ExpeditionStatus;
-  report?: any; // To be typed later
+  report?: FieldReport;
 }
 
 interface FieldProofDB extends DBSchema {
