@@ -47,7 +47,7 @@ classifier.fit(X_train, y_train)
 tabpfn_preds = classifier.predict(X_test)
 tabpfn_acc = accuracy_score(y_test, tabpfn_preds)
 
-print("=== FieldProof TabPFN Quality Prediction Experiment ===")
+print("=== WildProof TabPFN Quality Prediction Experiment ===")
 print(f"Dataset Size: {n_samples} samples")
 print(f"Features: {list(X.columns)}")
 print(f"Baseline Accuracy: {baseline_acc * 100:.2f}%")

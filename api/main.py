@@ -24,7 +24,7 @@ if sentry_dsn:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="FieldProof API")
+app = FastAPI(title="WildProof API")
 
 # Allow frontend to access the API
 app.add_middleware(
@@ -189,7 +189,7 @@ async def analyze_expedition_durable(request: AnalyzeRequest):
             "ExpeditionAnalysisWorkflow",
             evidence_data,
             id=f"expedition-analysis-{request.missionType}-{len(request.evidence)}",
-            task_queue="fieldproof-analysis-queue",
+            task_queue="wildproof-analysis-queue",
         )
         return {"status": "Workflow completed", "result": result}
     except Exception as e:

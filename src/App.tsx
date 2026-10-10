@@ -14,7 +14,7 @@ function Home() {
       <div className="bg-emerald-100 p-4 rounded-full mb-6">
         <Leaf className="w-12 h-12 text-emerald-600" />
       </div>
-      <h1 className="text-4xl font-bold text-neutral-900 mb-4 tracking-tight">FieldProof</h1>
+      <h1 className="text-4xl font-bold text-neutral-900 mb-4 tracking-tight">WildProof</h1>
       <p className="text-lg text-neutral-600 mb-8 max-w-md">
         An offline-first open-AI companion for turning ordinary walks into trustworthy field notes.
       </p>
@@ -54,7 +54,7 @@ function Missions() {
         </div>
         <h1 className="text-4xl font-extrabold mb-2 tracking-tight flex items-center gap-3">
           <Leaf className="w-8 h-8 text-emerald-400" />
-          FieldProof
+          WildProof
         </h1>
         <p className="text-emerald-200/90 text-lg max-w-md">Uncertainty-aware field logging for the rigorous outdoor researcher.</p>
       </div>
@@ -305,9 +305,9 @@ function Report() {
 function About() {
   return (
     <div className="p-4 max-w-xl mx-auto mt-8 text-neutral-800">
-      <h2 className="text-3xl font-bold mb-4">About FieldProof</h2>
+      <h2 className="text-3xl font-bold mb-4">About WildProof</h2>
       <p className="text-lg leading-relaxed mb-4">
-        FieldProof turns a 20-minute walk into structured, evidence-backed field research using local AI.
+        WildProof turns a 20-minute walk into structured, evidence-backed field research using local AI.
       </p>
       <p className="leading-relaxed">
         Instead of telling you to go outside and guessing what you took a photo of, we structure your observation, identify missing data, and make explicit distinctions between what is directly observed versus what is inferred.
@@ -324,7 +324,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto flex items-center justify-between p-4">
             <Link to="/" className="flex items-center gap-2 font-bold text-xl tracking-tight text-neutral-800 hover:opacity-80">
               <Leaf className="w-6 h-6 text-emerald-600" />
-              FieldProof
+              WildProof
             </Link>
             <nav className="flex items-center gap-6 text-sm font-medium text-neutral-600">
               <Link to="/missions" className="hover:text-emerald-600 flex items-center gap-1"><ClipboardList className="w-4 h-4 hidden sm:block"/> Missions</Link>

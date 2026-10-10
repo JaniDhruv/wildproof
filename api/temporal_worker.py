@@ -40,7 +40,7 @@ async def main():
     # Run the worker
     worker = Worker(
         client,
-        task_queue="fieldproof-analysis-queue",
+        task_queue="wildproof-analysis-queue",
         workflows=[ExpeditionAnalysisWorkflow],
         activities=[
             normalize_evidence,
@@ -51,7 +51,7 @@ async def main():
         ],
     )
     
-    logging.info("Starting Temporal Worker for FieldProof Analysis...")
+    logging.info("Starting Temporal Worker for WildProof Analysis...")
     await worker.run()
 
 if __name__ == "__main__":

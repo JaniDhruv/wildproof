@@ -40,7 +40,7 @@ export interface Expedition {
   report?: FieldReport;
 }
 
-interface FieldProofDB extends DBSchema {
+interface WildProofDB extends DBSchema {
   expeditions: {
     key: string;
     value: Expedition;
@@ -48,11 +48,11 @@ interface FieldProofDB extends DBSchema {
   };
 }
 
-let dbPromise: Promise<IDBPDatabase<FieldProofDB>> | null = null;
+let dbPromise: Promise<IDBPDatabase<WildProofDB>> | null = null;
 
 export async function getDb() {
   if (!dbPromise) {
-    dbPromise = openDB<FieldProofDB>('fieldproof-db', 1, {
+    dbPromise = openDB<WildProofDB>('wildproof-db', 1, {
       upgrade(db) {
         const store = db.createObjectStore('expeditions', { keyPath: 'id' });
         store.createIndex('by-status', 'status');

@@ -1,8 +1,8 @@
-# FieldProof 🌿
+# WildProof 🌿
 
-**FieldProof** is an offline-first, uncertainty-aware field observation app designed to help researchers, hikers, and citizen scientists confidently log outdoor evidence. Built for the **Hacktoberfest DEV Challenge (Week 1: Touch Grass)**.
+**WildProof** is an offline-first, uncertainty-aware field observation app designed to help researchers, hikers, and citizen scientists confidently log outdoor evidence. Built for the **Hacktoberfest DEV Challenge (Week 1: Touch Grass)**.
 
-Unlike typical AI identification apps that confidently guess incorrect species, FieldProof embraces uncertainty. It acts as an offline journal for your expedition (capturing photos, notes, and locations via IndexedDB). When you return to civilization, a local AI (Gemma 2B) analyzes your evidence, generating a structured report that explicitly separates *observed facts* from *inferred deductions*.
+Unlike typical AI identification apps that confidently guess incorrect species, WildProof embraces uncertainty. It acts as an offline journal for your expedition (capturing photos, notes, and locations via IndexedDB). When you return to civilization, a local AI (Gemma 2B) analyzes your evidence, generating a structured report that explicitly separates *observed facts* from *inferred deductions*.
 
 ## How it works
 
@@ -13,7 +13,7 @@ Unlike typical AI identification apps that confidently guess incorrect species, 
 
 ## Challenge Categories Targeted
 
-We built FieldProof to specifically target three prize categories:
+We built WildProof to specifically target three prize categories:
 
 ### 1. Best Use of TabPFN
 We integrated TabPFN to predict "Expedition Quality" based on tabular features (number of photos, note length, mission duration). Because TabPFN is optimized for small tabular datasets, it perfectly captures the non-linear relationships in small field-data sets. 
