@@ -1,5 +1,7 @@
 # WildProof 🌿
 
+![WildProof Demo](assets/demo.webp)
+
 **WildProof** is an offline-first, uncertainty-aware field observation app designed to help researchers, hikers, and citizen scientists confidently log outdoor evidence. Built for the **Hacktoberfest DEV Challenge (Week 1: Touch Grass)**.
 
 Unlike typical AI identification apps that confidently guess incorrect species, WildProof embraces uncertainty. It acts as an offline journal for your expedition (capturing photos, notes, and metadata via IndexedDB). When you return to civilization, a local AI (Gemma 2B) analyzes your evidence—currently processing the text notes and photographic metadata—generating a structured report that explicitly separates *observed facts* from *inferred deductions*.
