@@ -1,4 +1,5 @@
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { openDB } from 'idb';
+import type { DBSchema, IDBPDatabase } from 'idb';
 
 export type MissionType = 'habitat-comparison' | 'pattern-hunt' | 'sound-and-scene';
 export type EvidenceKind = 'photo' | 'audio' | 'note';

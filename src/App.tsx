@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
 import { Leaf, Map, ClipboardList, Info, Camera, Trash, Plus, Check } from 'lucide-react';
-import { getExpedition, saveExpedition, Expedition, EvidenceItem, MissionType, FieldReport } from './lib/db';
+import { getExpedition, saveExpedition } from './lib/db';
+import type { Expedition, EvidenceItem, MissionType, FieldReport } from './lib/db';
 
 function generateId() {
   return Math.random().toString(36).substr(2, 9);
