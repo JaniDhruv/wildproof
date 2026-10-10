@@ -58,19 +58,7 @@ The product rule is simple:
 
 > **Never let a successful-looking report hide an unsuccessful analysis.**
 
-## 📸 Screenshots
 
-<p align="center">
-  <img src="assets/screenshot1.png" alt="WildProof offline evidence capture screen" width="820" />
-  <br />
-  <em>Capture field notes and photo evidence during a mission.</em>
-</p>
-
-<p align="center">
-  <img src="assets/screenshot2.png" alt="WildProof fallback and Temporal analysis screen" width="820" />
-  <br />
-  <em>Choose the durable analysis path and see fallback states explicitly.</em>
-</p>
 
 ## 🗺️ How It Works
 
