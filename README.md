@@ -58,12 +58,14 @@ pip install -r api/requirements.txt
 ### 3. Running the Backend
 To start the standard FastAPI server:
 ```bash
-uvicorn api.main:app --reload
+cd api
+uvicorn main:app --reload
 ```
 
 *(Optional)* To run the Temporal worker (requires Temporal running locally `temporal server start-dev`):
 ```bash
-python api/temporal_worker.py
+cd api
+python temporal_worker.py
 ```
 
 ## License
