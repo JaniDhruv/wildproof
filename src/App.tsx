@@ -211,21 +211,28 @@ function Report() {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [quality, setQuality] = useState<{score: number, source: string} | null>(null);
+  const [useTemporal, setUseTemporal] = useState<boolean>(true);
 
   const fetchReport = async (exp: Expedition) => {
     setErrorMsg(null);
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-      const res = await fetch(`${baseUrl}/analyze`, {
+      const endpoint = useTemporal ? '/analyze-durable' : '/analyze';
+      
+      const res = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ missionType: exp.missionType, evidence: exp.evidence })
       });
       if (!res.ok) throw new Error('Backend unavailable');
-      const data = await res.json();
+      
+      let data = await res.json();
+      if (useTemporal && data.result) {
+        data = data.result; // Unwrap Temporal result
+      }
       
       // Fetch quality score
-      let qData = { score: 85, model: 'baseline' };
+      let qData = null;
       try {
         const qRes = await fetch(`${baseUrl}/predict-quality`, {
           method: 'POST',
@@ -233,7 +240,8 @@ function Report() {
           body: JSON.stringify({
             num_photos: exp.evidence.filter(e => e.kind === 'photo').length,
             num_notes: exp.evidence.filter(e => e.kind === 'note').length,
-            duration_seconds: 1200
+            duration_seconds: 1200,
+            total_note_length: exp.evidence.filter(e => e.kind === 'note').reduce((acc, e) => acc + (e.text?.length || 0), 0)
           })
         });
         if (qRes.ok) qData = await qRes.json();
@@ -242,9 +250,11 @@ function Report() {
       const updated = { ...exp, status: 'complete' as const, report: data };
       await saveExpedition(updated);
       setExpedition(updated);
-      setQuality({ score: qData.score, source: qData.model });
+      if (qData) {
+        setQuality({ score: qData.score, source: qData.model });
+      }
     } catch {
-      setErrorMsg("Local AI Offline. Viewing Mock Fallback Data.");
+      setErrorMsg(`Local AI or Temporal Offline. Viewing Mock Fallback Data.`);
       const mockReport: FieldReport = {
         summary: "[MOCK REPORT] A brief walk yielding partial insights into the local habitat.",
         observations: [
@@ -254,7 +264,10 @@ function Report() {
         missingEvidence: ["Audio capturing ambient bird sounds.", "Temperature readings."],
         suggestedNextStep: "Return at dusk to capture nocturnal insect patterns."
       };
-      setExpedition({ ...exp, report: mockReport });
+      // Persist fallback with failed status so it doesn't infinitely loop
+      const updated = { ...exp, status: 'failed' as const, report: mockReport };
+      await saveExpedition(updated);
+      setExpedition(updated);
     }
   };
 
@@ -262,7 +275,8 @@ function Report() {
     if (id) {
       getExpedition(id).then(async exp => {
         if (exp) {
-          if (!exp.report || exp.status !== 'complete') {
+          // If no report, or if it failed previously, fetch it unless we already have the fallback loaded
+          if (!exp.report || (exp.status !== 'complete' && exp.status !== 'failed')) {
             await fetchReport(exp);
           } else {
             setExpedition(exp);
@@ -279,7 +293,18 @@ function Report() {
   return (
     <div className="p-4 max-w-2xl mx-auto mt-4">
       <h2 className="text-3xl font-bold mb-2">Field Report</h2>
-      <p className="text-neutral-500 mb-6">{new Date(expedition.completedAt || expedition.startedAt).toLocaleString()}</p>
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-neutral-500">{new Date(expedition.completedAt || expedition.startedAt).toLocaleString()}</p>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-neutral-500">Temporal Workflow</span>
+          <button 
+            onClick={() => setUseTemporal(!useTemporal)}
+            className={`w-12 h-6 rounded-full transition-colors relative flex items-center ${useTemporal ? 'bg-emerald-500' : 'bg-neutral-300'}`}
+          >
+            <div className={`w-4 h-4 bg-white rounded-full absolute shadow transition-transform ${useTemporal ? 'translate-x-7' : 'translate-x-1'}`} />
+          </button>
+        </div>
+      </div>
 
       {errorMsg && (
         <div className="bg-amber-100 border border-amber-300 text-amber-900 p-4 rounded-xl mb-6 flex items-start justify-between gap-4 shadow-sm">

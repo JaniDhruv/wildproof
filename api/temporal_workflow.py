@@ -74,12 +74,21 @@ async def validate_report(report: ReportData) -> ReportData:
 @activity.defn
 async def run_tabpfn_quality_prediction(report: ReportData) -> int:
     activity.logger.info("Running TabPFN tabular prediction on expedition quality...")
-    return 95 # Dummy high quality score
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            # We call our own API to use the exact same TabPFN/fallback logic
+            response = await client.post(
+                "http://localhost:8000/predict-quality",
+                json={"num_photos": 1, "num_notes": len(report.observations), "total_note_length": len(report.summary), "duration_seconds": 600}
+            )
+            return response.json().get("score", 85)
+        except Exception:
+            return 85
 
 @activity.defn
-async def persist_report(report: ReportData) -> str:
+async def persist_report(report: ReportData) -> ReportData:
     activity.logger.info("Persisting durable report to Database...")
-    return "Report fully processed and saved!"
+    return report
 
 # ---------------------------------------------------------
 # WORKFLOW
@@ -88,7 +97,7 @@ async def persist_report(report: ReportData) -> str:
 @workflow.defn
 class ExpeditionAnalysisWorkflow:
     @workflow.run
-    async def analyze_expedition(self, evidence: EvidenceData) -> str:
+    async def analyze_expedition(self, evidence: EvidenceData) -> Dict[str, Any]:
         # Step 1: Normalize
         normalized = await workflow.execute_activity(
             normalize_evidence,
@@ -97,8 +106,6 @@ class ExpeditionAnalysisWorkflow:
         )
 
         # Step 2: Run Gemma Analysis
-        # This activity is prone to "failure", but Temporal will automatically retry it
-        # based on the default retry policy, ensuring the walk data isn't lost.
         raw_report = await workflow.execute_activity(
             run_gemma_analysis,
             normalized,
@@ -120,10 +127,17 @@ class ExpeditionAnalysisWorkflow:
         )
 
         # Step 5: Persist
-        result = await workflow.execute_activity(
+        final_report = await workflow.execute_activity(
             persist_report,
             validated_report,
             start_to_close_timeout=timedelta(seconds=10),
         )
 
-        return f"{result} (Quality Score: {quality_score})"
+        # Return as a dictionary that matches the frontend FieldReport schema
+        return {
+            "summary": final_report.summary,
+            "observations": final_report.observations,
+            "missing_evidence": final_report.missing_evidence,
+            "suggested_next_step": final_report.suggested_next_step,
+            "quality_score": quality_score
+        }
