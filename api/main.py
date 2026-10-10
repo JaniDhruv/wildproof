@@ -67,8 +67,7 @@ def health_check():
 @app.get("/sentry-debug")
 def trigger_error():
     logger.error("Simulated performance issue / timeout for Sentry Tracing.")
-    division_by_zero = 1 / 0
-    return {"status": "unreachable"}
+    raise Exception("Simulated timeout for Sentry!")
 
 async def generate_from_ollama(prompt: str) -> str:
     async with httpx.AsyncClient(timeout=60.0) as client:
